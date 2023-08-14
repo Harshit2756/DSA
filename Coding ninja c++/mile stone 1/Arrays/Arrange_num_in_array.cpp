@@ -57,5 +57,4 @@ void arrange(int *arr, int n)
             right--;
         }
     }
- 
 }
