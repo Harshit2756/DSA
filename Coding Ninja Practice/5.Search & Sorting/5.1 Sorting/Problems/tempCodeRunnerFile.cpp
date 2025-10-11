@@ -1,0 +1,3 @@
+void intersection(int a[], int b[], int m, int n){
+
+// }
