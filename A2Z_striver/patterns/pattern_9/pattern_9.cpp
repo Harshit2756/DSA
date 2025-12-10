@@ -62,19 +62,28 @@ public:
                 row = 2 * n - i - 1;
             }
 
-            // - Now we just use the standard "Upright Pyramid" logic using 'row'
-            //   Spaces: n - row - 1
-            for (int j = 0; j < n - row - 1; j++)
-            {
-                cout << " ";
-            }
+            // 2. Single Inner Loop
+            // Limit: We need to print spaces + stars.
+            // Spaces count: n - row - 1
+            // Stars count:  2 * row + 1
+            // Total columns needed: (n - row - 1) + (2 * row + 1) = n + row
+            for (int j = 0; j < n + row + 1; j++)
+            { // +1 to cover the last star? No, < n+row covers indices 0 to n+row-1.
+                // Wait, let's re-verify the math:
+                // Row 0 (n=3): Needs 2 spaces, 1 star. Total 3 chars. Indices 0, 1, 2. Limit should be 'n + row'.
 
-            //   Stars: 2*row + 1
-            for (int j = 0; j < 2 * row + 1; j++)
-            {
-                cout << "*";
+                // 3. Conditional Logic
+                // Spaces are on the left side, count is (n - row - 1).
+                // So if index j < count, it's a space.
+                if (j < n - row - 1)
+                {
+                    cout << " ";
+                }
+                else
+                {
+                    cout << "*";
+                }
             }
-
             cout << "\n";
         }
     }
