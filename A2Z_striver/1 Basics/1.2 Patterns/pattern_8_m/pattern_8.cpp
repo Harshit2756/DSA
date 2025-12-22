@@ -38,6 +38,34 @@ public:
             cout << "\n";
         }
     }
+
+    void pattern8StrictTwoLoops(int n) {
+        // Outer Loop: Iterates through rows (0 to n-1)
+        for (int i = 0; i < n; i++) {
+            
+            // 1. Calculate limits for this row
+            // Spaces logic: Row 0 -> 0 spaces, Row 1 -> 1 space... (spaces = i)
+            int spaces = i;
+            
+            // Stars logic: 2*n - (2*i + 1) OR 2*(n-i) - 1
+            int stars = 2 * (n - i) - 1;
+            
+            // The inner loop must run for the sum of both
+            int totalCols = spaces + stars;
+
+            // Inner Loop: STRICTLY ONE LOOP for columns
+            for (int j = 0; j < totalCols; j++) {
+                if (j < spaces) {
+                    cout << " "; // Print Space
+                } else {
+                    cout << "*"; // Print Star
+                }
+            }
+            
+            cout << "\n";
+        }
+    }
+
 };
 
 int main()
