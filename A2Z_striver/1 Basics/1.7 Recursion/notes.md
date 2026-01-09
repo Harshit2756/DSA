@@ -37,7 +37,6 @@ void countdown(int n) {
 # Lesson 2: Under the Hood - The Call Stack (Visualized)
 **Focus:** Memory Management & Execution Flow | **Example:** `factorial(3)`
 
----
 
 ## The Concept
 When a function calls itself, the computer does not "restart" the function. It pauses the current version and creates a **brand new instance** of that function in memory.
@@ -45,8 +44,6 @@ When a function calls itself, the computer does not "restart" the function. It p
 This area of memory is called the **Call Stack**. It works like a stack of plates:
 1.  **Push:** When a function is called, a new "plate" (Stack Frame) is added to the top.
 2.  **Pop:** When a function returns, the top plate is removed, and we resume the one below it.
-
----
 
 ### 🖼️ Mermaid Diagram 1: The Execution Flow
 This Sequence Diagram shows exactly how the computer "pauses" execution.
@@ -90,8 +87,6 @@ sequenceDiagram
     deactivate F3
 ```
 
----
-
 ### 🖼️ Mermaid Diagram 2: The Memory Snapshot
 This diagram represents the computer's RAM at the **deepest moment** of recursion (just before the base case returns).
 
@@ -126,8 +121,7 @@ graph BT
     style Main fill:#eebbff,stroke:#333
 ```
 
----
-## Recursion vs Iteration
+## Lesson 3: Recursion vs Iteration
 
 | Feature | Recursion | Iteration (Loops) |
 | :--- | :--- | :--- |
@@ -138,22 +132,28 @@ graph BT
 
  **Rule of Thumb: Use recursion for `trees, graphs, and hierarchical data`. Use iteration for simple `lists or counters`.**
 
----
 
-## Lesson 4: The Production Pattern (The Tree Problem)
+## Lesson 4: Types of Recursion & Optimization Strategies
 
-When we write a naive recursive function for Fibonacci (`fib(n) = fib(n-1) + fib(n-2)`), we aren't creating a straight line of work. We are creating a **Tree**.
+## Part I: The Types of Recursion (The Shapes)
 
-Every time you call `fib(5)`, it spawns two children: `fib(4)` and `fib(3)`. Those children spawn two more. This grows exponentially ($O(2^n)$).
+Recursion comes in three primary "shapes," defined by **where** and **how often** the recursive call happens.
 
-### The Code (Naive Approach)
+### 1. Naive/Tree Recursion (The "Explosion")
+**Definition:** A function is "Tree Recursive" if it makes **more than one** recursive call inside a single step.
+
+**Example:** The naive Fibonacci sequence (`fib(n) = fib(n-1) + fib(n-2)`).
+* **The Shape:** It does not form a straight line. It splits into branches.
+* **The Cost:** It grows exponentially ($O(2^n)$). Every step doubles the work.
+
+#### The Code (Naive Approach)
 ```python
 def fib(n):
     if n <= 1: return n
     return fib(n - 1) + fib(n - 2)
 ```
 
-### 🖼️ Mermaid Diagram: The Explosion
+#### 🖼️ Mermaid Diagram: The Explosion
 *Notice how `fib(2)` and `fib(3)` appear multiple times. We are doing the same work over and over!*
 
 ```mermaid
@@ -184,20 +184,211 @@ flowchart TB
     style F2_A fill:#ffcccc
     style F2_B fill:#ffcccc
     style F2_C fill:#ffcccc
-
 ```
 
 ---
 
-## Lesson 5: Optimization I - Memoization (Time) | 
+### 2. Head Recursion (The Boomerang / Stack Build-up)
+* **Definition:** The recursive call is made **before** the actual work is done.
+* **Flow:** Dive down -> Hit Base Case -> Calculate on the way up.
+* **Memory:** High. Stack frames must stay open to perform the multiplication later.
 
-**The Problem:** The tree above does redundant work.
 
-**The Fix:** "Memoization" (The Reminder Note). Before we do a calculation, we check if we've already done it. If yes, we return the saved answer.
+**Head Recursion (Call First):**
+```python
+def factorial_head(n):
+    # Base Case
+    if n == 0: 
+        return 1
+    
+    # Recursive Step (Head)
+    # We cannot return yet! We must wait for the result of factorial_head(n-1)
+    # and THEN multiply it by n.
+    result = factorial_head(n - 1)
+    return n * result
+```
 
-This turns the massive **Tree** into a lean **Directed Acyclic Graph (DAG)**.
+#### 🖼️ Mermaid Diagram: The "Boomerang" Flow
+*Notice how nothing is printed during the "Call" phase. All the printing happens during the "Return" phase.*
 
-### The Code (Memoized)
+```mermaid
+
+---
+config:
+  theme: redux-dark
+---
+sequenceDiagram
+    participant Main
+    participant F3 as Fact(3)
+    participant F2 as Fact(2)
+    participant F1 as Fact(1)
+
+    Note over Main: Goal: 3!
+
+    %% THE WINDING (GOING DOWN)
+    Main->>F3: Call(3)
+    activate F3
+    Note right of F3: Can't finish yet.<br/>Need Fact(2).
+    
+    F3->>F2: Call(2)
+    activate F2
+    Note right of F2: Can't finish yet.<br/>Need Fact(1).
+    
+    F2->>F1: Call(1)
+    activate F1
+    Note right of F1: Base Case!<br/>Return 1.
+    
+    %% THE UNWINDING (DOING WORK)
+    F1-->>F2: Return 1
+    deactivate F1
+    
+    Note right of F2: Now I can work!<br/>2 * 1 = 2
+    F2-->>F3: Return 2
+    deactivate F2
+    
+    Note right of F3: Now I can work!<br/>3 * 2 = 6
+    F3-->>Main: Return 6
+    deactivate F3
+
+```
+
+#### 🖼️ Mermaid Diagram: The "Boomerang" Graph
+
+```mermaid
+---
+config:
+  theme: default
+---
+flowchart TB
+ subgraph subGraphHead["Head Recursion: The Boomerang"]
+        H3["Fact(3) <br> 'I need to wait...'"]
+        H2["Fact(2) <br> 'I need to wait...'"]
+        H1["Fact(1) <br> Base Case: Return 1"]
+        Result["Final Result: 6"]
+  end
+    
+    %% The Winding Phase (Calls)
+    H3 -- "1. Call & Pause" --> H2
+    H2 -- "2. Call & Pause" --> H1
+    
+    %% The Unwinding Phase (Work)
+    H1 -. "3. Return 1" .-> H2
+    H2 -. "4. Calc 2*1 -> Return 2" .-> H3
+    H3 -. "5. Calc 3*2 -> Return 6" .-> Result
+    
+    %% Styling
+    style H3 fill:#ffcccc,stroke:#333
+    style H2 fill:#ffcccc,stroke:#333
+    style H1 fill:#ccffcc,stroke:#333
+    style Result fill:#ccffcc,stroke:#333,stroke-width:4px
+```
+
+### 3. Tail Recursion (The Tunnel / Accumulator)
+* **Definition:** The recursive call is the **absolute last action** of the function.
+* **Flow:** Calculate -> Pass Result -> Dive down.
+* **Memory:** Low (Potential $O(1)$). The parent has no work left, so the compiler can close the stack frame.
+
+#### The Code (Accumulator Style)
+We pass the state (`a`, `b`) *down* the chain. The function never needs to "wait" for a return value to do more math.
+
+```python
+def factorial_tail(n, accumulator=1):
+    # Base Case: Return the specific answer we built
+    if n == 0: 
+        return accumulator
+    
+    # Tail Recursive Step
+    # We do the math (accumulator * n) NOW.
+    # Then we pass the result down. No waiting!
+    return factorial_tail(n - 1, accumulator * n)
+```
+
+#### 🖼️ Mermaid Diagram: The "Tunnel" Flow
+
+*Notice how each call does its work immediately and passes the result down. There is no waiting!*
+
+```mermaid
+
+---
+config:
+  theme: redux-dark
+---
+
+sequenceDiagram
+    participant Main
+    participant Func as Tail_Fact
+
+    Note over Main: Goal: 3!
+    
+    %% STEP 1
+    Main->>Func: Call(n=3, acc=1)
+    activate Func
+    Note right of Func: Math: 1 * 3 = 3<br/>Pass it down!
+    
+    %% STEP 2
+    Func->>Func: Call(n=2, acc=3)
+    Note right of Func: Math: 3 * 2 = 6<br/>Pass it down!
+    
+    %% STEP 3
+    Func->>Func: Call(n=1, acc=6)
+    Note right of Func: Math: 6 * 1 = 6<br/>Pass it down!
+    
+    %% BASE CASE
+    Func->>Func: Call(n=0, acc=6)
+    Note right of Func: Base Case Reached.<br/>Return Acc (6).
+    
+    %% THE RETURN (Instant)
+    Func-->>Main: Result: 6
+    deactivate Func
+
+```
+
+#### mermaid Diagram: The "Tunnel" Graph
+
+```mermaid
+---
+config:
+  theme: default
+  layout: elk
+---
+flowchart TB
+ subgraph subGraphTail["Tail Recursion: The Tunnel"]
+        T3["Fact(3, acc=1) <br> Current State: 1"]
+        T2["Fact(2, acc=3) <br> Current State: 3"]
+        T1["Fact(1, acc=6) <br> Current State: 6"]
+        Base["Base Case (n=0) <br> Return Acc"]
+        Result["Final Result: 6"]
+  end
+
+    %% The Work happens ON THE WAY DOWN
+    T3 -- "1. Calc 1*3 -> Pass 3" --> T2
+    T2 -- "2. Calc 3*2 -> Pass 6" --> T1
+    T1 -- "3. Calc 6*1 -> Pass 6" --> Base
+    
+    %% The Direct Return (Tunnel)
+    Base -- "4. Return Final Value" --> Result
+
+    %% Styling (All Green because no memory is held 'waiting')
+    style T3 fill:#ccffcc,stroke:#333
+    style T2 fill:#ccffcc,stroke:#333
+    style T1 fill:#ccffcc,stroke:#333
+    style Base fill:#ccffcc,stroke:#333
+    style Result fill:#ccffcc,stroke:#333,stroke-width:4px
+```
+
+  
+ 
+## Part II: Optimization Strategies (The Fixes)
+
+We apply specific optimizations to specific problems.
+
+### Optimization I: Memoization (Fixing Tree Recursion)
+
+- **The Problem:** Tree Recursion recalculates the same sub-problems (e.g., `fib(3)`) multiple times.
+- **The Fix:** **Cache** the result the first time we see it.
+- **Result:** Transforms the Tree into a **Directed Acyclic Graph (DAG)**. Complexity drops from $O(2^n)$ to $O(N)$.
+
+#### The Code (Memoized)
 ```python
 memo = {}
 
@@ -214,18 +405,11 @@ def fib_memo(n):
     return result
 ```
 
-Complexity Drops from $O(2^n)$ to $O(n)$ Time. Space remains $O(n)$ due to the memo dictionary and call stack.
-
-### Sequence Diagram: Memoized Execution Flow
-
-
-**Scenario:** We want `Fib(4)`.
-* **Left Branch:** We have to do the hard work for `Fib(3)` and `Fib(2)`.
-* **Right Branch:** When `Fib(4)` needs `Fib(2)` again, it finds it in the cache!
-
-*Watch the "Cache" participant at the bottom to see data being stored.*
+#### 🖼️ Sequence Diagram: The Cache Hit
+*Watch the "Right Branch" skip the work because the "Left Branch" already did it.*
 
 ```mermaid
+
 ---
 config:
   theme: redux-dark
@@ -275,7 +459,8 @@ sequenceDiagram
     deactivate F4
 ```
 
-*Notice how the arrows merge. We calculate `fib(3)` once, and the second request just points to the existing result.*
+#### 🖼️ Graph Diagram: The Lean DAG
+*The dashed lines show where we reuse existing answers.*
 
 ```mermaid
 ---
@@ -301,81 +486,26 @@ graph TD
     style M2 fill:#ccffcc,stroke:#333,stroke-dasharray: 5 5
 ```
 
-
 ---
 
-## Lesson 6: Optimization II - Tail Recursion (Space)
+### Optimization II: Tail Call Optimization (Fixing Space)
 
-**The Problem:** Even with Memoization, `fib(10000)` will crash because we still pile up 10,000 Stack Frames waiting for answers.
+- **The Problem:** Standard recursion (Head or Tree) keeps Stack Frames open waiting for children to return. `fib(10000)` causes **Stack Overflow**.
+- **The Fix:** **Tail Recursion**. Since the parent has no work left to do, the compiler can safely "delete" the parent's stack frame before jumping to the child.
+- **Result:** Space Complexity drops from $O(N)$ to $O(1)$.
 
-**The Fix:** **Tail Recursion**. Instead of waiting for the answer to bubble up, we pass the running total *down* into the next function call.
-
-We change the shape from a **Pyramid** (Stack) to a **Tunnel** (Iterative-like).
-
-### The Code (Tail Recursive / Accumulator)
-We pass two accumulators: `a` (current) and `b` (next).
-*Logic:* `fib(n, a, b)` becomes `fib(n-1, b, a+b)`
-
-```cpp
-// C++ (Compilers optimize this into a loop)
-long long fib_tail(int n, long long a = 0, long long b = 1) {
-    if (n == 0) return a;
-    if (n == 1) return b;
-    
-    // Tail Call: The function returns the result of the NEXT call directly.
-    // No calculation is performed *after* the return.
-    return fib_tail(n - 1, b, a + b);
-}
-```
-This reduces Space Complexity to $O(1)$ (constant space) if the compiler supports Tail Call Optimization.
-### Sequence Diagram: Tail Recursion Flow
-**Concept:** In standard recursion, the "Main" function waits for the "Helper" to return. In Tail Recursion, the "Main" function passes the *current answer* to the "Helper" and says, "I'm done. You finish it."
-
-**Scenario:** Calculating `Fib(5)` using Accumulators.
-* `a` = current number
-* `b` = next number
-* Notice there is no "calculation" happening on the return arrows (dotted lines). The answer is built on the way **down**, not the way **up**.
-
-```mermaid
----
-config:
-  theme: redux-dark
----
-sequenceDiagram
-    participant Main
-    participant Fib as Tail_Recursive_Func
-
-    Note over Main: Goal: Fib(5)
-    Main->>Fib: Call(n=5, a=0, b=1)
-    activate Fib
-    
-    Note right of Fib: State: [0, 1] -> Pass [1, 1]
-    Fib->>Fib: Call(n=4, a=1, b=1)
-    
-    Note right of Fib: State: [1, 1] -> Pass [1, 2]
-    Fib->>Fib: Call(n=3, a=1, b=2)
-    
-    Note right of Fib: State: [1, 2] -> Pass [2, 3]
-    Fib->>Fib: Call(n=2, a=2, b=3)
-    
-    Note right of Fib: State: [2, 3] -> Pass [3, 5]
-    Fib->>Fib: Call(n=1, a=3, b=5)
-    
-    Note right of Fib: BASE CASE (n=1)<br/>Return 'b' (which is 5)
-    
-    %% The Return Phase
-    %% In a truly optimized tail call, these returns happen instantly
-    Fib-->>Fib: Return 5
-    Fib-->>Fib: Return 5
-    Fib-->>Fib: Return 5
-    Fib-->>Fib: Return 5
-    Fib-->>Main: Final Result: 5
-    deactivate Fib
+#### The Code (Tail Recursive Fibonacci)
+```python
+def fib_tail(n, a=0, b=1):
+    # Base Case
+    if n == 0:
+        return a
+    # Tail Recursive Step
+    return fib_tail(n - 1, b, a + b)
 ```
 
-
-### 🖼️ Mermaid Diagram: The Flat Chain
-*There is no tree. There is no unwinding. It is a single chain of state updates.*
+#### 🖼️ Sequence Diagram: The Flat Chain
+*Notice there is no unwinding. The `Result: 5` is just passed along.*
 
 ```mermaid
 ---
@@ -405,109 +535,17 @@ sequenceDiagram
     
     Function-->>Main: Result: 5
 ```
-# Lesson 7: Head Recursion (The "Boomerang" Effect)
-**Focus:** execution Flow & Post-Processing | **Example:** Printing 1 to N
 
 ---
 
-## The Concept
-Most people write "Body Recursion" or "Tail Recursion" intuitively. **Head Recursion** is slightly different: the recursive call is made **before** the actual work is done.
-
-* **Tail Recursion:** Do work -> Pass result to next clone. (Work happens on the way **Down/Winding**).
-* **Head Recursion:** Call next clone -> Wait for them to return -> Do work. (Work happens on the way **Up/Unwinding**).
-
-It acts like a **Boomerang**: You throw it out (recursive calls), it hits the base case, and then performs actions as it flies back to you.
-
-### Use Cases
-* Reversing a string or list.
-* Post-order Tree Traversal (processing children before the parent).
-* Solving dependency graphs.
-
----
-
-### The Code Comparison
-
-We want to print numbers from 1 to 5.
-
-#### 1. Tail Recursion (The Normal Way)
-*Prints **before** the call.*
-```cpp
-void printTail(int n) {
-    if (n == 0) return;
-    std::cout << n << " "; // Print 5
-    printTail(n - 1);      // Call 4
-}
-// Output: 5 4 3 2 1
-```
-
-#### 2. Head Recursion (The Boomerang)
-*Prints **after** the call returns.*
-```cpp
-void printHead(int n) {
-    if (n == 0) return;
-    printHead(n - 1);      // Call 4 (Wait...)
-    std::cout << n << " "; // Print 5 (Happens last!)
-}
-// Output: 1 2 3 4 5
-```
-
----
-
-### 🖼️ Mermaid Diagram: The "Boomerang" Flow
-
-This diagram visualizes `printHead(3)`. Notice how nothing is printed during the "Call" phase. All the printing happens during the "Return" phase.
-
-
-
-```mermaid
-sequenceDiagram
-    participant Main
-    participant F3 as Func(3)
-    participant F2 as Func(2)
-    participant F1 as Func(1)
-
-    Note over Main: Goal: printHead(3)
-
-    %% THE WINDING PHASE (Throwing the Boomerang)
-    Main->>F3: Call(3)
-    Note right of F3: 1. Call(2)<br/>(Pause & Wait)
-    
-    F3->>F2: Call(2)
-    Note right of F2: 1. Call(1)<br/>(Pause & Wait)
-    
-    F2->>F1: Call(1)
-    Note right of F1: 1. Call(0) -> Returns
-    
-    %% THE UNWINDING PHASE (The Return Flight)
-    Note right of F1: 2. Print "1"
-    F1-->>F2: Return
-    
-    Note right of F2: 2. Print "2"
-    F2-->>F3: Return
-    
-    Note right of F3: 2. Print "3"
-    F3-->>Main: Return
-```
-
----
-
-### 🧠 Mental Model: The Stack as a Storage
-In Head Recursion, the **Call Stack** implicitly stores your data for you.
-
-If you input "A, B, C" into a head-recursive function, the stack holds them in memory as:
-1.  Frame C (Top)
-2.  Frame B
-3.  Frame A (Bottom)
-
-When you pop them, they come out as "C, B, A". This is why Head Recursion is the standard way to **Reverse** data without using a loop or an extra list.
----
-
-## Summary of Optimizations
+## Summary Matrix
 
 | Strategy | Shape | Time Complexity | Space Complexity | Best For |
 | :--- | :--- | :--- | :--- | :--- |
-| **Naive** | Exploding Tree | $O(2^n)$ (Horrible) | $O(N)$ | Understanding logic |
-| **Memoized** | Pruned Graph | $O(N)$ (Fast) | $O(N)$ | Dynamic Programming |
-| **Tail Rec** | Flat Chain | $O(N)$ (Fast) | $O(1)$* | Production Systems |
+| **Naive / Tree** | Exploding Pyramid | $O(2^n)$ (Horrible) | $O(N)$ | Understanding logic |
+| **Memoization** | Pruned Graph (DAG) | $O(N)$ (Fast) | $O(N)$ | Dynamic Programming |
+| **Tail Rec** | Flat Tunnel | $O(N)$ (Fast) | $O(1)$* | Production Systems (Loops) |
 
 *\*O(1) space assumes the compiler supports Tail Call Optimization (like C++, Scala, Haskell). Python does not support this naturally.*
+
+For more details about the head and tail use case, refer to [Parameterized Recursion.](https://takeuforward.org/plus/dsa/problems/recursion-concepts-with-parameters?category=beginner-problem&subcategory=basic-recursion)
