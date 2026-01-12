@@ -7,15 +7,6 @@ Engineering Constraints:
 """
 
 class Solution:
-    
-"""
-Problem: Palindrome Check (All Recursive/Iterative Variations)
-Engineering Constraints: 
-- Avoid O(N) slicing overhead (e.g., s[1:-1]).
-- Minimize stack depth.
-"""
-
-class Solution:
     # ~ Approach 1: Two-Pointer Linear Recursion (Your Approach)
     # Analysis: Time O(N) / Space O(N) stack
     # >> C++ Perspective: High-level abstraction of a 'while' loop.

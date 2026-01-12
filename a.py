@@ -208,3 +208,7 @@ try:
     print("   As you watch the videos, fill in the 'explain()' method for that topic.")
 except Exception as e:
     print(f"❌ Error creating file: {e}")
+
+
+
+https://ia801301.us.archive.org/15/items/PanchikaranamDr.KameshwarNathMishra/Panchikaranam%20-%20Dr.%20Kameshwar%20Nath%20Mishra_text.pdf
